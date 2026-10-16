@@ -127,15 +127,17 @@ class GestureStabilizer:
 
 
 # ----------------------------------------------------------------------------
-# Procesador de Video de Streamlit WebRTC
+# Importaciones de MediaPipe
 # ----------------------------------------------------------------------------
-import mediapipe as mp
-
-mp_hands = mp.solutions.hands
-import mediapipe as mp
-
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
+
+
+# ----------------------------------------------------------------------------
+# Procesador de Video de Streamlit WebRTC
+# ----------------------------------------------------------------------------
+class AdvancedGestureProcessor(VideoProcessorBase):
+    def __init__(self):
         self.hands = mp_hands.Hands(
             static_image_mode=False,
             max_num_hands=1,

@@ -13,10 +13,6 @@ from streamlit_webrtc import RTCConfiguration, VideoProcessorBase, webrtc_stream
 st.set_page_config(page_title="Control por Gestos - Demo Web", layout="wide")
 
 st.title("🖐️ Control por Gestos (Lógica Avanzada)")
-st.write(
-    "Haz clic en **Start** para activar la cámara. La app analiza la orientación de tu índice, "
-    "palma/dorso y aplica un algoritmo de estabilización anti-falsos positivos."
-)
 
 # ----------------------------------------------------------------------------
 # Lógica y Parámetros
@@ -148,7 +144,7 @@ class AdvancedGestureProcessor(VideoProcessorBase):
 
     def recv(self, frame):
         img = frame.to_ndarray(format="bgr24")
-        img = cv2.flip(img, 1)  # Modo espejo
+        img = cv2.flip(img, 1)
         height, width = img.shape[:2]
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
@@ -179,14 +175,58 @@ class AdvancedGestureProcessor(VideoProcessorBase):
         return frame.from_ndarray(img, format="bgr24")
 
 
-# Servidor STUN público de Google para negociar conexiones WebRTC en Streamlit Cloud
+# Servidores STUN y TURN con fallback TCP para saltar bloqueos de red
 RTC_CONFIGURATION = RTCConfiguration(
-    {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
+    {
+        "iceServers": [
+            {"urls": ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"]},
+            {
+                "urls": [
+                    "turn:openrelay.metered.ca:80",
+                    "turn:openrelay.metered.ca:443",
+                    "turn:openrelay.metered.ca:443?transport=tcp",
+                ]
+            },
+        ]
+    }
 )
 
-webrtc_streamer(
-    key="advanced-gesture-detection",
-    video_processor_factory=AdvancedGestureProcessor,
-    rtc_configuration=RTC_CONFIGURATION,
-    media_stream_constraints={"video": True, "audio": False},
-)
+tab1, tab2 = st.tabs(["🎥 Transmisión WebRTC en Vivo", "📸 Captura Directa (Respaldo)"])
+
+with tab1:
+    st.write("Usa esta pestaña para transmisión en video en tiempo real:")
+    webrtc_streamer(
+        key="advanced-gesture-detection",
+        video_processor_factory=AdvancedGestureProcessor,
+        rtc_configuration=RTC_CONFIGURATION,
+        media_stream_constraints={"video": True, "audio": False},
+    )
+
+with tab2:
+    st.write("Si la red de tu escuela/institución bloquea WebRTC, usa esta pestaña para tomar una captura y procesar el gesto instantáneamente:")
+    img_file = st.camera_input("Toma una foto haciendo un gesto con la mano")
+
+    if img_file is not None:
+        bytes_data = img_file.getvalue()
+        cv_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
+        height, width = cv_img.shape[:2]
+        img_rgb = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
+
+        hands_detector = mp_hands.Hands(static_image_mode=True, max_num_hands=1)
+        results = hands_detector.process(img_rgb)
+
+        if results.multi_hand_landmarks:
+            for hand_landmarks in results.multi_hand_landmarks:
+                mp_drawing.draw_landmarks(cv_img, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+
+            landmarks = results.multi_hand_landmarks[0].landmark
+            pts = [(p.x * width, p.y * height) for p in landmarks]
+            label = results.multi_handedness[0].classification[0].label if results.multi_handedness else None
+            detected_gesture = classify_gesture(pts, label)
+            gesture_text = detected_gesture.value if detected_gesture else "SIN GESTO DETECTADO"
+        else:
+            gesture_text = "NO SE DETECTÓ NINGUNA MANO"
+
+        cv_img = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
+        st.image(cv_img, caption=f"Resultado: {gesture_text}", use_column_width=True)
+        st.success(f"Gesto Detectado: **{gesture_text}**")

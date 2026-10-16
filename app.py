@@ -175,7 +175,7 @@ class AdvancedGestureProcessor(VideoProcessorBase):
         return frame.from_ndarray(img, format="bgr24")
 
 
-# Servidores STUN y TURN con fallback TCP para saltar bloqueos de red
+# Servidores STUN/TURN con autenticación requerida
 RTC_CONFIGURATION = RTCConfiguration(
     {
         "iceServers": [
@@ -185,7 +185,9 @@ RTC_CONFIGURATION = RTCConfiguration(
                     "turn:openrelay.metered.ca:80",
                     "turn:openrelay.metered.ca:443",
                     "turn:openrelay.metered.ca:443?transport=tcp",
-                ]
+                ],
+                "username": "openrelayproject",
+                "credential": "openrelayproject",
             },
         ]
     }

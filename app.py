@@ -38,6 +38,7 @@ html_code = """
       --border-color: #30363d;
       --accent-blue: #58a6ff;
       --accent-green: #2ea043;
+      --accent-red: #da3633;
       --accent-gold: #e3b341;
       --text-main: #c9d1d9;
       --text-muted: #8b949e;
@@ -100,8 +101,38 @@ html_code = """
       backdrop-filter: blur(4px);
     }
 
+    /* Botón Encender / Apagar Cámara */
+    .toggle-cam-btn {
+      width: 100%;
+      margin-top: 12px;
+      padding: 10px;
+      background: var(--accent-red);
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 12px rgba(218, 54, 51, 0.3);
+    }
+
+    .toggle-cam-btn:hover {
+      filter: brightness(1.15);
+      transform: translateY(-1px);
+    }
+
+    .toggle-cam-btn.off {
+      background: var(--accent-green);
+      box-shadow: 0 4px 12px rgba(46, 160, 67, 0.3);
+    }
+
     .instructions-box {
-      margin-top: 14px;
+      margin-top: 12px;
       width: 100%;
       background: rgba(255, 255, 255, 0.03);
       border-radius: 10px;
@@ -140,7 +171,7 @@ html_code = """
       flex-direction: column;
       justify-content: space-between;
       box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-      min-height: 500px;
+      min-height: 520px;
     }
 
     .tabs-header {
@@ -295,6 +326,11 @@ html_code = """
       <div id="hud" class="hud-badge">Iniciando Sensor...</div>
     </div>
 
+    <!-- Botón de Control On/Off -->
+    <button id="toggle-cam-btn" class="toggle-cam-btn">
+      📷 Apagar Cámara
+    </button>
+
     <div class="instructions-box">
       <div class="instructions-title">Comandos de Control Remoto</div>
       <div class="gesture-guide">
@@ -440,11 +476,13 @@ html_code = """
     const hud = document.getElementById('hud');
     const actionStatus = document.getElementById('action-status');
     const slideCounter = document.getElementById('slide-counter');
+    const toggleCamBtn = document.getElementById('toggle-cam-btn');
 
     let currentTab = 0;
     const totalTabs = 6;
     let lastActionTime = 0;
-    const ACTION_COOLDOWN = 1300; // 1.3s para evitar saltos múltiples
+    const ACTION_COOLDOWN = 1300;
+    let isCameraActive = true;
 
     function switchTab(index) {
       if (index < 0 || index >= totalTabs) return;
@@ -497,10 +535,10 @@ html_code = """
     function classifyGesture(landmarks) {
       const wrist = landmarks[0];
       const fingers = [
-        { tip: landmarks[8],  pip: landmarks[6]  }, // Índice
-        { tip: landmarks[12], pip: landmarks[10] }, // Medio
-        { tip: landmarks[16], pip: landmarks[14] }, // Anular
-        { tip: landmarks[20], pip: landmarks[18] }  // Meñique
+        { tip: landmarks[8],  pip: landmarks[6]  },
+        { tip: landmarks[12], pip: landmarks[10] },
+        { tip: landmarks[16], pip: landmarks[14] },
+        { tip: landmarks[20], pip: landmarks[18] }
       ];
 
       const extended = fingers.map(f => dist(f.tip, wrist) > (dist(f.pip, wrist) * 1.05));
@@ -526,6 +564,8 @@ html_code = """
     }
 
     function onResults(results) {
+      if (!isCameraActive) return;
+
       try {
         canvasCtx.save();
         canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
@@ -579,15 +619,39 @@ html_code = """
 
     const camera = new Camera(videoElement, {
       onFrame: async () => {
-        await hands.send({image: videoElement});
+        if (isCameraActive) {
+          await hands.send({image: videoElement});
+        }
       },
       width: 378,
       height: 284
     });
     camera.start();
+
+    // Evento del botón On/Off de la cámara
+    toggleCamBtn.addEventListener('click', () => {
+      if (isCameraActive) {
+        camera.stop();
+        isCameraActive = false;
+        toggleCamBtn.innerText = "📷 Encender Cámara";
+        toggleCamBtn.classList.add('off');
+        hud.innerText = "CÁMARA APAGADA";
+        hud.style.color = "#8b949e";
+        hud.style.borderColor = "#30363d";
+        canvasCtx.save();
+        canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        canvasCtx.restore();
+      } else {
+        camera.start();
+        isCameraActive = true;
+        toggleCamBtn.innerText = "📷 Apagar Cámara";
+        toggleCamBtn.classList.remove('off');
+        hud.innerText = "Iniciando Sensor...";
+      }
+    });
   </script>
 </body>
 </html>
 """
 
-components.html(html_code, height=580)
+components.html(html_code, height=620)

@@ -129,7 +129,14 @@ class GestureStabilizer:
 # ----------------------------------------------------------------------------
 # Procesador de Video de Streamlit WebRTC
 # ----------------------------------------------------------------------------
-import mediapipe.solutions.hands as mp_hands
+import mediapipe as mp
+
+try:
+    mp_hands = mp.solutions.hands
+    mp_drawing = mp.solutions.drawing_utils
+except (AttributeError, ModuleNotFoundError):
+    from mediapipe.python.solutions import hands as mp_hands
+    from mediapipe.python.solutions import drawing_utils as mp_drawing
 import mediapipe.solutions.drawing_utils as mp_drawing
 
 

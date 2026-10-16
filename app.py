@@ -2,25 +2,18 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 st.set_page_config(
-    page_title="Control por Gestos - Presentación Interactiva",
+    page_title="Gestos de Superhéroe - Interfaz de Visión Computacional",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# Estilos CSS generales para la página de Streamlit
+# Estilos base de Streamlit
 st.markdown("""
 <style>
-    .main { background-color: #0d1117; }
-    h1 { color: #58a6ff; font-weight: 700; text-align: center; margin-bottom: 0px; }
-    p.subtitle { text-align: center; color: #8b949e; font-size: 1.1rem; margin-bottom: 25px; }
+    .main { background-color: #07090e; }
+    .stApp { background-color: #07090e; }
 </style>
 """, unsafe_allow_html=True)
-
-st.title("🖐️ Sistema de Control por Gestos en Tiempo Real")
-st.markdown(
-    "<p class='subtitle'>Demostración interactiva de Visión Computacional y Edge Computing para interfaces Hombre-Máquina (HCI)</p>",
-    unsafe_allow_html=True
-)
 
 html_code = """
 <!DOCTYPE html>
@@ -32,13 +25,15 @@ html_code = """
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
   <style>
     :root {
-      --bg-dark: #0d1117;
-      --card-bg: #161b22;
-      --border-color: #30363d;
-      --accent-blue: #58a6ff;
-      --accent-green: #2ea043;
-      --text-main: #c9d1d9;
-      --text-muted: #8b949e;
+      --bg-dark: #07090e;
+      --card-bg: #0f131d;
+      --border-color: #1f293d;
+      --spidey-red: #e62429;
+      --spidey-blue: #00d2ff;
+      --hero-gold: #ffb700;
+      --bat-dark: #161b26;
+      --text-main: #e2e8f0;
+      --text-muted: #94a3b8;
     }
 
     * { box-sizing: border-box; }
@@ -47,32 +42,69 @@ html_code = """
       padding: 10px;
       background-color: var(--bg-dark);
       color: var(--text-main);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* Encabezado Épico */
+    .hero-header {
+      text-align: center;
+      margin-bottom: 15px;
+      width: 100%;
+    }
+
+    .hero-title {
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #e62429, #ffb700, #00d2ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 0;
+      text-shadow: 0 0 20px rgba(230, 36, 41, 0.3);
+    }
+
+    .hero-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .main-container {
       display: flex;
       gap: 20px;
+      width: 100%;
+      max-width: 1250px;
       justify-content: center;
     }
     
-    /* Panel de la Cámara */
+    /* Panel Radar / Cámara */
     .cam-card {
-      width: 440px;
+      width: 420px;
       background: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 16px;
+      border: 2px solid var(--border-color);
+      border-radius: 18px;
       padding: 16px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      box-shadow: 0 0 25px rgba(0, 210, 255, 0.15);
+      position: relative;
     }
 
     .cam-container {
       position: relative;
-      width: 408px;
-      height: 306px;
-      border-radius: 12px;
+      width: 388px;
+      height: 291px;
+      border-radius: 14px;
       overflow: hidden;
-      border: 2px solid var(--border-color);
+      border: 2px solid #2a364f;
+      box-shadow: 0 0 15px rgba(230, 36, 41, 0.2);
     }
 
     video { display: none; }
@@ -86,90 +118,93 @@ html_code = """
       position: absolute;
       top: 12px;
       left: 12px;
-      background: rgba(13, 17, 23, 0.9);
-      color: #00ff88;
+      background: rgba(7, 9, 14, 0.88);
+      color: var(--hero-gold);
       padding: 6px 14px;
-      font-size: 13px;
-      font-weight: 700;
-      border-radius: 20px;
-      border: 1px solid #00ff88;
-      letter-spacing: 0.5px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
-      backdrop-filter: blur(4px);
+      font-size: 12px;
+      font-weight: 800;
+      border-radius: 8px;
+      border: 1.5px solid var(--hero-gold);
+      letter-spacing: 1px;
+      box-shadow: 0 0 10px rgba(255, 183, 0, 0.4);
+      backdrop-filter: blur(5px);
     }
 
     .instructions-box {
       margin-top: 14px;
       width: 100%;
-      background: rgba(255, 255, 255, 0.03);
-      border-radius: 10px;
-      padding: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      background: rgba(22, 27, 38, 0.8);
+      border-radius: 12px;
+      padding: 12px 14px;
+      border: 1px solid #2a364f;
     }
 
     .instructions-title {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--accent-blue);
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--spidey-blue);
       text-transform: uppercase;
       letter-spacing: 1px;
       margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .gesture-guide {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 6px;
-      font-size: 12px;
+      gap: 8px;
+      font-size: 11.5px;
       color: var(--text-muted);
     }
 
-    .gesture-guide span { font-weight: 600; color: var(--text-main); }
+    .gesture-guide span { font-weight: 700; color: #ffffff; }
 
-    /* Panel de la Presentación */
+    /* Panel Presentación Estilo Batcomputadora / Archivos Stark */
     .presentation-card {
       flex: 1;
-      max-width: 780px;
       background: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 16px;
+      border: 2px solid var(--border-color);
+      border-radius: 18px;
       padding: 24px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      box-shadow: 0 0 25px rgba(230, 36, 41, 0.1);
       min-height: 480px;
     }
 
     .tabs-header {
       display: flex;
       gap: 8px;
-      border-bottom: 1px solid var(--border-color);
-      padding-bottom: 14px;
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 12px;
     }
 
     .tab-btn {
-      padding: 10px 16px;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid transparent;
+      padding: 10px 14px;
+      background: #141a26;
+      border: 1px solid #2a364f;
       color: var(--text-muted);
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 13px;
-      transition: all 0.25s ease;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 12px;
+      transition: all 0.3s ease;
+      cursor: pointer;
     }
 
     .tab-btn.active {
-      background: var(--accent-blue);
+      background: linear-gradient(135deg, var(--spidey-red), #b30f14);
       color: #ffffff;
-      border-color: var(--accent-blue);
-      box-shadow: 0 0 15px rgba(88, 166, 255, 0.4);
+      border-color: var(--spidey-red);
+      box-shadow: 0 0 15px rgba(230, 36, 41, 0.5);
     }
 
     .slide-content {
       display: none;
       padding: 15px 5px;
-      animation: fadeInSlide 0.4s ease-out;
+      animation: heroFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .slide-content.active { display: block; }
@@ -177,175 +212,235 @@ html_code = """
     .slide-badge {
       display: inline-block;
       padding: 4px 10px;
-      background: rgba(88, 166, 255, 0.15);
-      color: var(--accent-blue);
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
+      background: rgba(0, 210, 255, 0.12);
+      color: var(--spidey-blue);
+      border: 1px solid rgba(0, 210, 255, 0.3);
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
       margin-bottom: 10px;
     }
 
     .slide-title {
       color: #ffffff;
-      font-size: 22px;
-      font-weight: 700;
-      margin: 0 0 14px 0;
+      font-size: 20px;
+      font-weight: 800;
+      margin: 0 0 12px 0;
     }
 
     .slide-body {
       color: var(--text-main);
-      font-size: 14.5px;
+      font-size: 13.5px;
       line-height: 1.6;
     }
 
-    .slide-body ul {
-      margin: 8px 0;
-      padding-left: 20px;
+    .hero-card-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 10px;
     }
 
-    .slide-body li {
-      margin-bottom: 8px;
+    .hero-subcard {
+      background: rgba(22, 27, 38, 0.7);
+      border: 1px solid #2a364f;
+      border-radius: 10px;
+      padding: 12px;
+    }
+
+    .hero-subcard h4 {
+      margin: 0 0 6px 0;
+      color: var(--hero-gold);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .hero-subcard p {
+      margin: 0;
+      font-size: 12px;
+      color: var(--text-muted);
     }
 
     .highlight {
-      color: var(--accent-blue);
-      font-weight: 600;
+      color: var(--spidey-blue);
+      font-weight: 700;
     }
 
     .code-tag {
-      background: rgba(110, 118, 129, 0.2);
+      background: rgba(0, 210, 255, 0.15);
       padding: 2px 6px;
       border-radius: 4px;
       font-family: monospace;
-      font-size: 13px;
-      color: #f0f6fc;
+      font-size: 12px;
+      color: var(--spidey-blue);
+      border: 1px solid rgba(0, 210, 255, 0.3);
     }
 
     .footer-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-top: 1px solid var(--border-color);
-      padding-top: 14px;
+      border-top: 2px solid var(--border-color);
+      padding-top: 12px;
       margin-top: 10px;
     }
 
     .action-status {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--accent-green);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--hero-gold);
       display: flex;
       align-items: center;
       gap: 6px;
     }
 
     .slide-counter {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--text-muted);
-      font-weight: 600;
+      font-weight: 700;
+      letter-spacing: 0.5px;
     }
 
-    @keyframes fadeInSlide {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
+    @keyframes heroFadeIn {
+      from { opacity: 0; transform: translateY(10px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
     }
   </style>
 </head>
 <body>
 
-  <!-- Panel Izquierdo: Cámara e Indicadores -->
-  <div class="cam-card">
-    <div class="cam-container">
-      <video id="webcam" autoplay playsinline></video>
-      <canvas id="output_canvas" width="408" height="306"></canvas>
-      <div id="hud" class="hud-badge">Iniciando Sensor...</div>
-    </div>
-
-    <div class="instructions-box">
-      <div class="instructions-title">Comandos de Control Remoto</div>
-      <div class="gesture-guide">
-        <div>👉 <span>Índice Derecha:</span> Siguiente</div>
-        <div>👈 <span>Índice Izquierda:</span> Anterior</div>
-        <div>🖐️ <span>Mano Abierta:</span> Ir al Inicio</div>
-        <div>✊ <span>Puño Cerrado:</span> En Espera</div>
-      </div>
-    </div>
+  <div class="hero-header">
+    <h1 class="hero-title">🕷️ VISIÓN HEROICA • CONTROL POR GESTOS</h1>
+    <div class="hero-subtitle">Módulo de Inteligencia Artificial & Interacción Hombre-Máquina al estilo Liga de la Justicia</div>
   </div>
 
-  <!-- Panel Derecho: Diapositivas Explicativas Ampliadas -->
-  <div class="presentation-card">
-    <div>
-      <div class="tabs-header">
-        <div class="tab-btn active" id="tab-0">1. Introducción</div>
-        <div class="tab-btn" id="tab-1">2. Arquitectura Edge</div>
-        <div class="tab-btn" id="tab-2">3. Lógica Vectorial</div>
-        <div class="tab-btn" id="tab-3">4. Aplicaciones</div>
+  <div class="main-container">
+
+    <!-- Panel Izquierdo: Sensor / Cámara con Esqueleto Neón -->
+    <div class="cam-card">
+      <div class="cam-container">
+        <video id="webcam" autoplay playsinline></video>
+        <canvas id="output_canvas" width="388" height="291"></canvas>
+        <div id="hud" class="hud-badge">SISTEMA LISTO</div>
       </div>
 
-      <!-- Diapositiva 1 -->
-      <div class="slide-content active" id="slide-0">
-        <span class="slide-badge">Módulo 01 — Contexto & Propósito</span>
-        <h2 class="slide-title">Interacción Hombre-Máquina Sin Contacto (Touchless HCI)</h2>
-        <div class="slide-body">
-          Esta aplicación demuestra cómo reemplazar dispositivos tradicionales de entrada (como mouse o teclados) mediante la interpretación gestual en tiempo real utilizando visión computacional.
-          <ul>
-            <li><span class="highlight">Reconocimiento Natural:</span> Permite navegar la interfaz a través de movimientos intuitivos de la mano capturados por una webcam convencional.</li>
-            <li><span class="highlight">Procesamiento Local:</span> Elimina la dependencia de hardware especializado como cámaras de profundidad (LiDAR o Depth Sensors), operando directamente con video RGB estándar.</li>
-            <li><span class="highlight">Control de Flujo:</span> Navega dinámicamente entre estos módulos informativos mediante los gestos indicados en el panel izquierdo.</li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- Diapositiva 2 -->
-      <div class="slide-content" id="slide-1">
-        <span class="slide-badge">Módulo 02 — Infraestructura Técnica</span>
-        <h2 class="slide-title">Procesamiento Edge vs. Servidor (30 FPS)</h2>
-        <div class="slide-body">
-          Para garantizar una experiencia fluida y mitigar cuellos de botella en la red, se adoptó una arquitectura de <span class="highlight">Edge Computing</span> (procesamiento en el cliente).
-          <ul>
-            <li><span class="highlight">Despliegue Navegador-Nativo:</span> La captura del fotograma y la inferencia de inteligencia artificial ocurren 100% dentro del navegador usando JavaScript y WebGL.</li>
-            <li><span class="highlight">Baja Latencia:</span> Se evita el envío continuo de video vía streaming (WebRTC/UDP) hacia el servidor de Streamlit Cloud, previniendo saturación de ancho de banda y bloqueos de red.</li>
-            <li><span class="highlight">Eficiencia de Recursos:</span> Aprovecha la aceleración por GPU local del dispositivo del usuario, logrando una tasa estable de 30 fotogramas por segundo.</li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- Diapositiva 3 -->
-      <div class="slide-content" id="slide-2">
-        <span class="slide-badge">Módulo 03 — Algoritmo Geométrica</span>
-        <h2 class="slide-title">Extracción de Landmarks y Clasificación Trigonometría</h2>
-        <div class="slide-body">
-          El motor utiliza el pipeline de <span class="highlight">MediaPipe Hands</span> para mapear 21 puntos clave (landmarks 3D) de la articulación de la mano.
-          <ul>
-            <li><span class="highlight">Detección de Extensión:</span> Evalúa la distancia entre las puntas de los dedos y la muñeca (<span class="code-tag">Wrist Point 0</span>) comparándola contra los nudillos intermedios (PIP). Un dedo se considera extendido si la punta supera proporcionalmente la articulación base.</li>
-            <li><span class="highlight">Cálculo de Ángulo Dirección:</span> Al aislar el índice, se calcula el vector del segmento <span class="code-tag">MCP (5) ➔ TIP (8)</span> determinando su ángulo mediante la función arcotangente2:
-              <br><span class="code-tag">&theta; = atan2(&Delta;Y, &Delta;X) &times; (180 / &pi;)</span></li>
-            <li><span class="highlight">Tolerancia Anti-Ruido:</span> Un umbral angular de &plusmn;35&deg; y un filtro de enfriamiento (cooldown) previenen activaciones accidentales por micro-temblores de la mano.</li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- Diapositiva 4 -->
-      <div class="slide-content" id="slide-3">
-        <span class="slide-badge">Módulo 04 — Impacto Industrial</span>
-        <h2 class="slide-title">Casos de Uso Real y Proyección Futura</h2>
-        <div class="slide-body">
-          Los sistemas de control por visión computacional tienen un papel transformador en múltiples campos de la industria:
-          <ul>
-            <li><span class="highlight">Entornos Médicos y Quirúrgicos:</span> Control de monitores e imágenes médicas dentro de quirófanos sin romper la esterilización de las manos.</li>
-            <li><span class="highlight">Industria y Manufactura:</span> Manejo de maquinaria pesada o consulta de planos digitales en entornos con guantes o suciedad donde las pantallas táctiles fallan.</li>
-            <li><span class="highlight">Tecnologías Asistivas:</span> Interfaces adaptadas para personas con movilidad reducida o diversidad funcional.</li>
-            <li><span class="highlight">Sistemas Inmersivos:</span> Control intuitivo en experiencias de Realidad Virtual/Aumentada (VR/AR).</li>
-          </ul>
+      <div class="instructions-box">
+        <div class="instructions-title">🕷️ COMANDOS DE SUPERPODER</div>
+        <div class="gesture-guide">
+          <div>👉 <span>Índice Derecha:</span> Siguiente Cap.</div>
+          <div>👈 <span>Índice Izquierda:</span> Cap. Anterior</div>
+          <div>🖐️ <span>Mano Abierta:</span> Volver al Inicio</div>
+          <div>✊ <span>Puño Cerrado:</span> Modo Escudo</div>
         </div>
       </div>
     </div>
 
-    <!-- Barra Inferior -->
-    <div class="footer-bar">
-      <div class="action-status" id="action-status">⚡ Sistema listo • Esperando movimiento</div>
-      <div class="slide-counter" id="slide-counter">Diapositiva 1 de 4</div>
+    <!-- Panel Derecho: Capítulos Detallados para Exposición -->
+    <div class="presentation-card">
+      <div>
+        <div class="tabs-header">
+          <div class="tab-btn active" id="tab-0">🕷️ 1. Origen & Sentido Aracneo</div>
+          <div class="tab-btn" id="tab-1">⚡ 2. Velocidad Flash (Edge 30 FPS)</div>
+          <div class="tab-btn" id="tab-2">🦇 3. Batcomputadora Vectorial</div>
+          <div class="tab-btn" id="tab-3">🛡️ 4. Misiones en el Mundo Real</div>
+        </div>
+
+        <!-- CAPÍTULO 1 -->
+        <div class="slide-content active" id="slide-0">
+          <span class="slide-badge">CAPÍTULO 01 • SENSADO Y VISIÓN DIGITAL</span>
+          <h2 class="slide-title">🕷️ El "Sentido Arácnido": Visión Computacional Touchless</h2>
+          <div class="slide-body">
+            En los cómics, el "Sentido Arácnido" le permite a Spider-Man percibir el entorno en milisegundos sin tocar nada. En este proyecto, le otorgamos a la computadora ese mismo "superpoder" visual.
+            <div class="hero-card-grid">
+              <div class="hero-subcard">
+                <h4>🖐️ Interacción Sin Contacto</h4>
+                <p>Reemplaza teclados y controles físicos capturando el movimiento biológico de la mano con una cámara RGB común.</p>
+              </div>
+              <div class="hero-subcard">
+                <h4>🎯 Sensado Biométrico 3D</h4>
+                <p>Detecta gestos de manera natural sin requerir trajes especiales, sensores LiDAR o guantes hápticos costosos.</p>
+              </div>
+            </div>
+            <p style="margin-top: 10px;">
+              <b>Propósito Técnico:</b> Demostrar cómo los algoritmos de redes neuronales convolucionales ligeras pueden procesar la biomecánica de los dedos para controlar interfaces web dinámicas.
+            </p>
+          </div>
+        </div>
+
+        <!-- CAPÍTULO 2 -->
+        <div class="slide-content" id="slide-1">
+          <span class="slide-badge">CAPÍTULO 02 • VELOCIDAD SOBREHUMANA</span>
+          <h2 class="slide-title">⚡ Velocidad de Flash: Procesamiento Edge a 30 FPS</h2>
+          <div class="slide-body">
+            Para lograr una respuesta instantánea (como los reflejos de Flash), procesamos todo el flujo de video directamente en el navegador del usuario en lugar de enviarlo a servidores remotos.
+            <div class="hero-card-grid">
+              <div class="hero-subcard">
+                <h4>🚀 Inferencia Local (Client-Side)</h4>
+                <p>La IA corre dentro del motor de JavaScript del navegador mediante WebGL. Cero latencia de transmisión por Internet.</p>
+              </div>
+              <div class="hero-subcard">
+                <h4>🛡️ Inmune a Caídas de Red</h4>
+                <p>Al no transmitir video continuo por sockets (WebRTC/UDP), la app nunca colapsa el servidor de Streamlit Cloud ni consume ancho de banda.</p>
+              </div>
+            </div>
+            <p style="margin-top: 10px;">
+              <span class="highlight">Rendimiento:</span> Mantiene una tasa fluida de <b>30 fotogramas por segundo</b> aprovechando la aceleración por hardware de la GPU del equipo local.
+            </p>
+          </div>
+        </div>
+
+        <!-- CAPÍTULO 3 -->
+        <div class="slide-content" id="slide-2">
+          <span class="slide-badge">CAPÍTULO 03 • GEOMETRÍA Y TRIGONOMETRÍA</span>
+          <h2 class="slide-title">🦇 Mapeo de Telaraña: 21 Puntos y Trigonometría Vectorial</h2>
+          <div class="slide-body">
+            Al estilo de la Batcomputadora o JARVIS, el sistema construye una malla virtual con 21 puntos clave (landmarks) sobre las articulaciones de la mano.
+            <ul>
+              <li><b>Detección de Falanges:</b> Un dedo se clasifica como extendido si la distancia de la punta (<span class="code-tag">TIP</span>) a la muñeca (<span class="code-tag">WRIST 0</span>) es mayor que la de su nudillo base (<span class="code-tag">PIP</span>).</li>
+              <li><b>Dirección Angular del Índice:</b> Aislando el dedo índice, calculamos el ángulo vectorial de orientación:
+                <br><span class="code-tag">&theta; = atan2(&Delta;Y, &Delta;X) &times; (180 / &pi;)</span></li>
+              <li><b>Filtro Anti-Falsos Positivos:</b> Se aplica un umbral de &plusmn;35&deg; y un tiempo de recarga (<span class="highlight">cooldown</span>) de 1.3s para evitar movimientos involuntarios.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- CAPÍTULO 4 -->
+        <div class="slide-content" id="slide-3">
+          <span class="slide-badge">CAPÍTULO 04 • IMPACTO EN LA SOCIEDAD</span>
+          <h2 class="slide-title">🛡️ Misiones en el Mundo Real: Aplicaciones Útiles</h2>
+          <div class="slide-body">
+            Esta tecnología de visión computacional no es solo un truco visual, tiene aplicaciones directas en la industria moderna:
+            <div class="hero-card-grid">
+              <div class="hero-subcard">
+                <h4>🏥 Quirófanos y Salud</h4>
+                <p>Permite a médicos cirujanos manipular tomografías y monitores en medio de operaciones sin tocar pantallas estériles.</p>
+              </div>
+              <div class="hero-subcard">
+                <h4>🦾 Robótica y Accesibilidad</h4>
+                <p>Sistemas de asistencia para personas con discapacidad motriz e interfaces para prótesis robóticas inteligentes.</p>
+              </div>
+              <div class="hero-subcard">
+                <h4>🏭 Industria Pesada</h4>
+                <p>Manejo de maquinaria pesada o consulta de planos digitales en entornos donde el operario lleva guantes o grasa.</p>
+              </div>
+              <div class="hero-subcard">
+                <h4>🥽 Realidad Virtual (AR/VR)</h4>
+                <p>Control natural e inmersivo en visores de Realidad Aumentada sin necesidad de mandos plásticos en las manos.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Barra Inferior -->
+      <div class="footer-bar">
+        <div class="action-status" id="action-status">✨ RADAR DE SUPERHÉROE ACTIVO • ESPERANDO GESTO</div>
+        <div class="slide-counter" id="slide-counter">CAPÍTULO 1 DE 4</div>
+      </div>
     </div>
+
   </div>
 
   <script>
@@ -359,7 +454,7 @@ html_code = """
     let currentTab = 0;
     const totalTabs = 4;
     let lastActionTime = 0;
-    const ACTION_COOLDOWN = 1300; // 1.3s para evitar saltos dobles
+    const ACTION_COOLDOWN = 1300;
 
     function switchTab(index) {
       if (index < 0 || index >= totalTabs) return;
@@ -370,7 +465,7 @@ html_code = """
         slide.classList.toggle('active', i === index);
       });
       currentTab = index;
-      slideCounter.innerText = `Diapositiva ${currentTab + 1} de ${totalTabs}`;
+      slideCounter.innerText = `CAPÍTULO ${currentTab + 1} DE ${totalTabs}`;
     }
 
     function handleAction(gesture) {
@@ -380,28 +475,28 @@ html_code = """
       if (gesture === "ÍNDICE DERECHA") {
         if (currentTab < totalTabs - 1) {
           switchTab(currentTab + 1);
-          showAction("👉 Avanzando a la siguiente diapositiva");
+          showAction("👉 AVANZANDO AL SIGUIENTE CAPÍTULO");
           lastActionTime = now;
         }
       } else if (gesture === "ÍNDICE IZQUIERDA") {
         if (currentTab > 0) {
           switchTab(currentTab - 1);
-          showAction("👈 Regresando a la diapositiva anterior");
+          showAction("👈 REGRESANDO AL CAPÍTULO ANTERIOR");
           lastActionTime = now;
         }
       } else if (gesture === "MANO ABIERTA") {
         if (currentTab !== 0) {
           switchTab(0);
-          showAction("🖐️ Reiniciando presentación (Inicio)");
+          showAction("🖐️ VOLVIENDO AL ORIGEN (CAPÍTULO 1)");
           lastActionTime = now;
         }
       }
     }
 
     function showAction(msg) {
-      actionStatus.innerHTML = "✨ " + msg;
+      actionStatus.innerHTML = "💥 " + msg;
       setTimeout(() => {
-        actionStatus.innerHTML = "⚡ Sistema activo • Esperando gesto";
+        actionStatus.innerHTML = "✨ RADAR DE SUPERHÉROE ACTIVO • ESPERANDO GESTO";
       }, 1600);
     }
 
@@ -412,10 +507,10 @@ html_code = """
     function classifyGesture(landmarks) {
       const wrist = landmarks[0];
       const fingers = [
-        { tip: landmarks[8],  pip: landmarks[6]  }, // Índice
-        { tip: landmarks[12], pip: landmarks[10] }, // Medio
-        { tip: landmarks[16], pip: landmarks[14] }, // Anular
-        { tip: landmarks[20], pip: landmarks[18] }  // Meñique
+        { tip: landmarks[8],  pip: landmarks[6]  },
+        { tip: landmarks[12], pip: landmarks[10] },
+        { tip: landmarks[16], pip: landmarks[14] },
+        { tip: landmarks[20], pip: landmarks[18] }
       ];
 
       const extended = fingers.map(f => dist(f.tip, wrist) > (dist(f.pip, wrist) * 1.05));
@@ -437,7 +532,7 @@ html_code = """
         if (Math.abs(angle) >= 145 || Math.abs(angle) <= -145) return "ÍNDICE DERECHA";
       }
 
-      return "GESTO DETECTADO";
+      return "GESTO RECONOCIDO";
     }
 
     function onResults(results) {
@@ -445,7 +540,7 @@ html_code = """
         canvasCtx.save();
         canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
         
-        // Efecto Espejo horizontal
+        // Espejo horizontal
         canvasCtx.translate(canvasElement.width, 0);
         canvasCtx.scale(-1, 1);
         canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
@@ -453,26 +548,27 @@ html_code = """
         if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
           const landmarks = results.multiHandLandmarks[0];
           
+          // Dibujar telaraña / esqueleto de héroe (Azul Spidey Neón y Nodos Rojos)
           if (typeof drawConnectors !== 'undefined' && typeof HAND_CONNECTIONS !== 'undefined') {
-            drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#58a6ff', lineWidth: 3});
+            drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#00d2ff', lineWidth: 3});
           }
           if (typeof drawLandmarks !== 'undefined') {
-            drawLandmarks(canvasCtx, landmarks, {color: '#00ff88', lineWidth: 2, radius: 3});
+            drawLandmarks(canvasCtx, landmarks, {color: '#e62429', lineWidth: 2, radius: 4});
           }
 
           canvasCtx.restore();
 
           const gesture = classifyGesture(landmarks);
           hud.innerText = gesture;
-          hud.style.color = "#00ff88";
-          hud.style.borderColor = "#00ff88";
+          hud.style.color = "#ffb700";
+          hud.style.borderColor = "#ffb700";
           
           handleAction(gesture);
         } else {
           canvasCtx.restore();
-          hud.innerText = "Buscando Mano...";
-          hud.style.color = "#8b949e";
-          hud.style.borderColor = "#30363d";
+          hud.innerText = "BUSCANDO MANO...";
+          hud.style.color = "#94a3b8";
+          hud.style.borderColor = "#2a364f";
         }
       } catch (err) {
         console.error(err);
@@ -496,8 +592,8 @@ html_code = """
       onFrame: async () => {
         await hands.send({image: videoElement});
       },
-      width: 408,
-      height: 306
+      width: 388,
+      height: 291
     });
     camera.start();
   </script>
@@ -505,4 +601,4 @@ html_code = """
 </html>
 """
 
-components.html(html_code, height=530)
+components.html(html_code, height=560)

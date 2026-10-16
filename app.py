@@ -129,8 +129,8 @@ class GestureStabilizer:
 # ----------------------------------------------------------------------------
 # Procesador de Video de Streamlit WebRTC
 # ----------------------------------------------------------------------------
-mp_hands = mp.solutions.hands
-mp_drawing = mp.solutions.drawing_utils
+import mediapipe.solutions.hands as mp_hands
+import mediapipe.solutions.drawing_utils as mp_drawing
 
 
 class AdvancedGestureProcessor(VideoProcessorBase):

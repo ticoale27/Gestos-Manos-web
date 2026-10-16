@@ -132,17 +132,10 @@ class GestureStabilizer:
 import mediapipe as mp
 
 mp_hands = mp.solutions.hands
-mp_drawing = mp.solutions.drawing_utils
-
-try:
-    mp_hands = mp.solutions.hands
-    mp_drawing = mp.solutions.drawing_utils
 import mediapipe as mp
 
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
-class AdvancedGestureProcessor(VideoProcessorBase):
-    def __init__(self):
         self.hands = mp_hands.Hands(
             static_image_mode=False,
             max_num_hands=1,

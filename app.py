@@ -7,12 +7,16 @@ import streamlit as st
 import mediapipe as mp
 
 st.set_page_config(page_title="Control por Gestos - Demo Web", layout="wide")
-st.title("🖐️ Control por Gestos (Reconocimiento Inteligente)")
-st.write("Toma una foto con tu webcam o sube una imagen de tu mano para probar la clasificación de gestos en tiempo real.")
 
-# Cargar el modelo en caché para evitar sobrecargar el servidor
+st.title("🖐️ Control por Gestos con Visión Computacional")
+st.write(
+    "Aplicación de clasificación de gestos en tiempo real utilizando OpenCV y MediaPipe. "
+    "Puedes tomar una captura con tu cámara web o subir una imagen."
+)
+
+# Carga optimizada del modelo MediaPipe en caché
 @st.cache_resource
-def get_hand_detector():
+def load_hand_detector():
     mp_hands = mp.solutions.hands
     mp_drawing = mp.solutions.drawing_utils
     detector = mp_hands.Hands(
@@ -22,7 +26,7 @@ def get_hand_detector():
     )
     return detector, mp_hands, mp_drawing
 
-# Lógica geométrica
+# Lógica de detección geométrica de gestos
 EXTENDED_RATIO = 1.5
 DIRECTION_TOLERANCE_DEG = 35.0
 WRIST, INDEX_MCP, PINKY_MCP = 0, 5, 17
@@ -81,8 +85,8 @@ def classify_gesture(pts: List[Point], handedness: Optional[str]) -> Optional[Ge
             return Gesture.POINT_LEFT
     return None
 
-def process_image(cv_img):
-    detector, mp_hands, mp_drawing = get_hand_detector()
+def process_frame(cv_img):
+    detector, mp_hands, mp_drawing = load_hand_detector()
     height, width = cv_img.shape[:2]
     img_rgb = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
     results = detector.process(img_rgb)
@@ -101,24 +105,25 @@ def process_image(cv_img):
 
     return cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB), gesture_text
 
+# Interfaz en dos columnas
 col1, col2 = st.columns(2)
 
 with col1:
-    st.subheader("📷 Opción A: Captura con la Webcam")
-    camera_img = st.camera_input("Haz un gesto a la cámara")
+    st.subheader("📷 Capturar con la Cámara")
+    camera_img = st.camera_input("Haz un gesto hacia la cámara y presiona 'Tomar foto'")
     if camera_img is not None:
         bytes_data = camera_img.getvalue()
         cv_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
-        res_img, text = process_image(cv_img)
-        st.image(res_img, caption="Resultado del Análisis", use_column_width=True)
+        res_img, text = process_frame(cv_img)
+        st.image(res_img, caption="Análisis en Tiempo Real", use_column_width=True)
         st.success(f"Gesto Detectado: **{text}**")
 
 with col2:
-    st.subheader("📁 Opción B: Subir Archivo de Foto")
-    uploaded_file = st.file_uploader("Carga una foto de tu mano (JPG/PNG)", type=["jpg", "jpeg", "png"])
+    st.subheader("📁 Cargar Imagen")
+    uploaded_file = st.file_uploader("Sube una imagen de una mano (JPG/PNG)", type=["jpg", "jpeg", "png"])
     if uploaded_file is not None:
         bytes_data = uploaded_file.getvalue()
         cv_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
-        res_img, text = process_image(cv_img)
-        st.image(res_img, caption="Resultado del Análisis", use_column_width=True)
+        res_img, text = process_frame(cv_img)
+        st.image(res_img, caption="Análisis de Imagen", use_column_width=True)
         st.success(f"Gesto Detectado: **{text}**")

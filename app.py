@@ -1,129 +1,163 @@
-import cv2
-import math
-from enum import Enum
-from typing import Dict, List, Optional, Tuple
-import numpy as np
 import streamlit as st
-import mediapipe as mp
+import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Control por Gestos - Demo Web", layout="wide")
+st.set_page_config(page_title="Control por Gestos en Vivo", layout="wide")
 
-st.title("🖐️ Control por Gestos con Visión Computacional")
+st.title("🖐️ Control por Gestos en Tiempo Real (Demo en Vivo)")
 st.write(
-    "Aplicación de clasificación de gestos en tiempo real utilizando OpenCV y MediaPipe. "
-    "Puedes tomar una captura con tu cámara web o subir una imagen."
+    "Reconocimiento de gestos a 30 FPS procesado directamente desde la webcam. "
+    "Acepta el permiso de la cámara si el navegador lo solicita."
 )
 
-# Carga optimizada del modelo MediaPipe en caché
-@st.cache_resource
-def load_hand_detector():
-    mp_hands = mp.solutions.hands
-    mp_drawing = mp.solutions.drawing_utils
-    detector = mp_hands.Hands(
-        static_image_mode=True,
-        max_num_hands=1,
-        min_detection_confidence=0.5
-    )
-    return detector, mp_hands, mp_drawing
+# Código HTML5 + JavaScript embebido con MediaPipe Hands
+html_code = """
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <style>
+    body {
+      margin: 0;
+      background-color: #0e1117;
+      color: white;
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      position: relative;
+      width: 640px;
+      height: 480px;
+      margin-top: 10px;
+    }
+    video { display: none; }
+    canvas {
+      width: 640px;
+      height: 480px;
+      transform: scaleX(-1);
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+      border: 2px solid #262730;
+    }
+    #hud {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.85);
+      color: #00ff00;
+      padding: 12px 24px;
+      font-size: 22px;
+      font-weight: bold;
+      border-radius: 8px;
+      border: 2px solid #00ff00;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <video id="webcam" autoplay playsinline></video>
+    <canvas id="output_canvas" width="640" height="480"></canvas>
+    <div id="hud">Gesto: INICIALIZANDO CÁMARA...</div>
+  </div>
 
-# Lógica de detección geométrica de gestos
-EXTENDED_RATIO = 1.5
-DIRECTION_TOLERANCE_DEG = 35.0
-WRIST, INDEX_MCP, PINKY_MCP = 0, 5, 17
-FINGERS = {"index": (5, 8), "middle": (9, 12), "ring": (13, 16), "pinky": (17, 20)}
-Point = Tuple[float, float]
+  <script>
+    const videoElement = document.getElementById('webcam');
+    const canvasElement = document.getElementById('output_canvas');
+    const canvasCtx = canvasElement.getContext('2d');
+    const hud = document.getElementById('hud');
 
-class Gesture(Enum):
-    FIST = "PUÑO CERRADO"
-    OPEN_PALM = "MANO ABIERTA"
-    POINT_UP = "ÍNDICE ARRIBA"
-    POINT_RIGHT = "ÍNDICE DERECHA"
-    POINT_LEFT = "ÍNDICE IZQUIERDA"
+    function dist(a, b) {
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    }
 
-def _dist(a: Point, b: Point) -> float:
-    return math.hypot(a[0] - b[0], a[1] - b[1])
+    function classifyGesture(landmarks) {
+      const wrist = landmarks[0];
+      const indexMcp = landmarks[5], indexTip = landmarks[8];
+      const middleMcp = landmarks[9], middleTip = landmarks[12];
+      const ringMcp = landmarks[13], ringTip = landmarks[16];
+      const pinkyMcp = landmarks[17], pinkyTip = landmarks[20];
 
-def fingers_extended(pts: List[Point]) -> Optional[Dict[str, bool]]:
-    wrist = pts[WRIST]
-    states = {}
-    for name, (mcp, tip) in FINGERS.items():
-        base = _dist(pts[mcp], wrist)
-        if base < 1e-6:
-            return None
-        states[name] = (_dist(pts[tip], wrist) / base) > EXTENDED_RATIO
-    return states
+      function isExt(mcp, tip) {
+        const base = dist(mcp, wrist);
+        if (base < 1e-5) return false;
+        return (dist(tip, wrist) / base) > 1.45;
+      }
 
-def palm_faces_camera(pts: List[Point], handedness: Optional[str]) -> bool:
-    if handedness not in ("Left", "Right"):
-        return False
-    ax, ay = pts[INDEX_MCP][0] - pts[WRIST][0], pts[INDEX_MCP][1] - pts[WRIST][1]
-    bx, by = pts[PINKY_MCP][0] - pts[WRIST][0], pts[PINKY_MCP][1] - pts[WRIST][1]
-    cross = ax * by - ay * bx
-    return cross > 0 if handedness == "Right" else cross < 0
+      const extIdx = isExt(indexMcp, indexTip);
+      const extMid = isExt(middleMcp, middleTip);
+      const extRng = isExt(ringMcp, ringTip);
+      const extPnk = isExt(pinkyMcp, pinkyTip);
 
-def index_direction_deg(pts: List[Point]) -> float:
-    dx = pts[8][0] - pts[INDEX_MCP][0]
-    dy_up = -(pts[8][1] - pts[INDEX_MCP][1])
-    return math.degrees(math.atan2(dy_up, dx))
+      const count = (extIdx?1:0) + (extMid?1:0) + (extRng?1:0) + (extPnk?1:0);
 
-def classify_gesture(pts: List[Point], handedness: Optional[str]) -> Optional[Gesture]:
-    ext = fingers_extended(pts)
-    if ext is None:
-        return None
-    count = sum(ext.values())
-    if count == 0:
-        return Gesture.FIST
-    if count == 4:
-        return Gesture.OPEN_PALM if palm_faces_camera(pts, handedness) else None
-    if count == 1 and ext["index"]:
-        angle = index_direction_deg(pts)
-        if abs(angle - 90.0) <= DIRECTION_TOLERANCE_DEG:
-            return Gesture.POINT_UP
-        if abs(angle) <= DIRECTION_TOLERANCE_DEG:
-            return Gesture.POINT_RIGHT
-        if abs(angle) >= 180.0 - DIRECTION_TOLERANCE_DEG:
-            return Gesture.POINT_LEFT
-    return None
+      if (count === 0) return "PUÑO CERRADO";
+      if (count === 4) return "MANO ABIERTA";
+      if (count === 1 && extIdx) {
+        // Invertimos dx para que coincida con el modo espejo del video
+        const dx = -(indexTip.x - indexMcp.x);
+        const dy = -(indexTip.y - indexMcp.y);
+        let angle = Math.atan2(dy, dx) * (180 / Math.PI);
 
-def process_frame(cv_img):
-    detector, mp_hands, mp_drawing = load_hand_detector()
-    height, width = cv_img.shape[:2]
-    img_rgb = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
-    results = detector.process(img_rgb)
+        if (Math.abs(angle - 90) <= 35) return "ÍNDICE ARRIBA";
+        if (Math.abs(angle) <= 35) return "ÍNDICE DERECHA";
+        if (Math.abs(angle) >= 145) return "ÍNDICE IZQUIERDA";
+      }
+      return "GESTO NO RECONOCIDO";
+    }
 
-    if results.multi_hand_landmarks:
-        for hand_landmarks in results.multi_hand_landmarks:
-            mp_drawing.draw_landmarks(cv_img, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+    function onResults(results) {
+      canvasCtx.save();
+      canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+      canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
 
-        landmarks = results.multi_hand_landmarks[0].landmark
-        pts = [(p.x * width, p.y * height) for p in landmarks]
-        label = results.multi_handedness[0].classification[0].label if results.multi_handedness else None
-        detected = classify_gesture(pts, label)
-        gesture_text = detected.value if detected else "SIN GESTO RECONOCIDO"
-    else:
-        gesture_text = "NO SE DETECTÓ NINGUNA MANO"
+      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        for (const landmarks of results.multiHandLandmarks) {
+          drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 4});
+          drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 2, radius: 4});
+        }
+        const gesture = classifyGesture(results.multiHandLandmarks[0]);
+        hud.innerText = "Gesto: " + gesture;
+        hud.style.color = "#00FF00";
+        hud.style.borderColor = "#00FF00";
+      } else {
+        hud.innerText = "Gesto: BUSCANDO MANO...";
+        hud.style.color = "#aaaaaa";
+        hud.style.borderColor = "#aaaaaa";
+      }
+      canvasCtx.restore();
+    }
 
-    return cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB), gesture_text
+    const hands = new Hands({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
 
-# Interfaz en dos columnas
-col1, col2 = st.columns(2)
+    hands.setOptions({
+      maxNumHands: 1,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.6,
+      minTrackingConfidence: 0.6
+    });
 
-with col1:
-    st.subheader("📷 Capturar con la Cámara")
-    camera_img = st.camera_input("Haz un gesto hacia la cámara y presiona 'Tomar foto'")
-    if camera_img is not None:
-        bytes_data = camera_img.getvalue()
-        cv_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
-        res_img, text = process_frame(cv_img)
-        st.image(res_img, caption="Análisis en Tiempo Real", use_column_width=True)
-        st.success(f"Gesto Detectado: **{text}**")
+    hands.onResults(onResults);
 
-with col2:
-    st.subheader("📁 Cargar Imagen")
-    uploaded_file = st.file_uploader("Sube una imagen de una mano (JPG/PNG)", type=["jpg", "jpeg", "png"])
-    if uploaded_file is not None:
-        bytes_data = uploaded_file.getvalue()
-        cv_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
-        res_img, text = process_frame(cv_img)
-        st.image(res_img, caption="Análisis de Imagen", use_column_width=True)
-        st.success(f"Gesto Detectado: **{text}**")
+    const camera = new Camera(videoElement, {
+      onFrame: async () => {
+        await hands.send({image: videoElement});
+      },
+      width: 640,
+      height: 480
+    });
+    camera.start();
+  </script>
+</body>
+</html>
+"""
+
+# Renderizar el componente en Streamlit
+components.html(html_code, height=520)

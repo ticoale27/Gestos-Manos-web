@@ -8,7 +8,7 @@ from typing import Deque, Dict, List, Optional, Tuple
 import mediapipe as mp
 import numpy as np
 import streamlit as st
-from streamlit_webrtc import VideoProcessorBase, webrtc_streamer
+from streamlit_webrtc import RTCConfiguration, VideoProcessorBase, webrtc_streamer
 
 st.set_page_config(page_title="Control por Gestos - Demo Web", layout="wide")
 
@@ -179,8 +179,14 @@ class AdvancedGestureProcessor(VideoProcessorBase):
         return frame.from_ndarray(img, format="bgr24")
 
 
+# Servidor STUN público de Google para negociar conexiones WebRTC en Streamlit Cloud
+RTC_CONFIGURATION = RTCConfiguration(
+    {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
+)
+
 webrtc_streamer(
     key="advanced-gesture-detection",
     video_processor_factory=AdvancedGestureProcessor,
+    rtc_configuration=RTC_CONFIGURATION,
     media_stream_constraints={"video": True, "audio": False},
 )

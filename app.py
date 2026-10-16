@@ -137,12 +137,10 @@ mp_drawing = mp.solutions.drawing_utils
 try:
     mp_hands = mp.solutions.hands
     mp_drawing = mp.solutions.drawing_utils
-except (AttributeError, ModuleNotFoundError):
-    from mediapipe.python.solutions import hands as mp_hands
-    from mediapipe.python.solutions import drawing_utils as mp_drawing
-import mediapipe.solutions.drawing_utils as mp_drawing
+import mediapipe as mp
 
-
+mp_hands = mp.solutions.hands
+mp_drawing = mp.solutions.drawing_utils
 class AdvancedGestureProcessor(VideoProcessorBase):
     def __init__(self):
         self.hands = mp_hands.Hands(
